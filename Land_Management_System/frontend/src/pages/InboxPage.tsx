@@ -18,17 +18,18 @@ export default function InboxPage() {
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"ALL" | "ESCALATED" | "APPROVED">("ALL");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | string>("ALL");
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
+
       const res = await api.get("/dossiers/inbox");
 
-      const data =
-        Array.isArray(res.data)
-          ? res.data
-          : res.data?.data ?? res.data?.content ?? [];
+      // hỗ trợ mọi kiểu response BE
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data ?? res.data?.content ?? [];
 
       setRows(data);
       setLoading(false);
@@ -37,25 +38,36 @@ export default function InboxPage() {
     void run();
   }, []);
 
-
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
-    return rows.filter((d) => {
+    return rows.filter((d: any) => {
       const title = (d.title ?? "").toLowerCase();
       const id = String(d.id);
 
+      // ===== SEARCH (id + title, không phân biệt hoa thường)
       const matchSearch =
         keyword === "" ||
         title.includes(keyword) ||
         id.includes(keyword);
 
-      const matchFilter =
-        filter === "ALL" ? true : d.status === filter;
+      // ===== FIX FIELD BACKEND (quan trọng)
+      const dossierTypeId =
+        d.dossierTypeId ?? d.dossier_type_id ?? d.dossierType?.id;
 
-      return matchSearch && matchFilter;
+      const matchType =
+        typeFilter === "ALL"
+          ? true
+          : String(dossierTypeId) === typeFilter;
+
+      return matchSearch && matchType;
     });
-  }, [rows, search, filter]);
+  }, [rows, search, typeFilter]);
+
+  const reset = () => {
+    setSearch("");
+    setTypeFilter("ALL");
+  };
 
   return (
     <Stack spacing={2}>
@@ -70,44 +82,40 @@ export default function InboxPage() {
       <Paper sx={{ p: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center">
 
-          {/* SEARCH - FIX WIDTH */}
+          {/* SEARCH (nhỏ lại) */}
           <TextField
             size="small"
-            label="Tìm kiếm (tên hoặc ID)"
+            label="Tìm kiếm (tên / ID)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 220 }}   // 👈 nhỏ lại rõ ràng
+            sx={{ width: 180 }}   // 👈 nhỏ hơn
           />
 
-          {/* FILTER - FIX HIỂN THỊ */}
+          {/* FILTER TYPE */}
           <TextField
             select
             size="small"
-            label="Lọc trạng thái"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
-            sx={{ width: 180 }}  
+            label="Loại hồ sơ"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            sx={{ width: 200 }}
           >
             <MenuItem value="ALL">Tất cả</MenuItem>
-            <MenuItem value="ESCALATED">Gửi cấp trên</MenuItem>
-            <MenuItem value="APPROVED">Đã duyệt</MenuItem>
+            <MenuItem value="1">Cấp giấy chứng nhận quyền sử dụng đất</MenuItem>
+            <MenuItem value="2">Chuyển nhượng đất</MenuItem>
+            <MenuItem value="3">Tách thửa / hợp thửa</MenuItem>
+            <MenuItem value="4">Cấp lại giấy tờ</MenuItem>
           </TextField>
 
           <Box sx={{ flexGrow: 1 }} />
 
           {/* RESET */}
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => {
-              setSearch("");
-              setFilter("ALL");
-            }}
-          >
-            tải lại
+          <Button size="small" variant="outlined" onClick={reset}>
+            Reset
           </Button>
         </Stack>
       </Paper>
+
       {/* LIST */}
       <Paper sx={{ p: 2 }}>
         {loading ? (
@@ -116,32 +124,37 @@ export default function InboxPage() {
           <Typography>Không có hồ sơ.</Typography>
         ) : (
           <Stack spacing={1}>
-            {filtered.map((d) => (
-              <Paper key={d.id} variant="outlined" sx={{ p: 1.5 }}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography fontWeight={600}>
-                      {d.title}
-                    </Typography>
+            {filtered.map((d: any) => {
+              const dossierTypeId =
+                d.dossierTypeId ?? d.dossier_type_id ?? d.dossierType?.id;
 
-                    <Typography variant="caption" color="text.secondary">
-                      ID #{d.id} · origin unit #{d.origin_unit_id}
-                    </Typography>
-                  </Box>
+              return (
+                <Paper key={d.id} variant="outlined" sx={{ p: 1.5 }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Box sx={{ flexGrow: 1 }}>
+                      <Typography fontWeight={600}>
+                        {d.title}
+                      </Typography>
 
-                  <StatusChip status={d.status} />
+                      <Typography variant="caption" color="text.secondary">
+                        ID #{d.id} · type #{dossierTypeId}
+                      </Typography>
+                    </Box>
 
-                  <Button
-                    size="small"
-                    variant="contained"
-                    component={RouterLink}
-                    to={`/dossiers/${d.id}`}
-                  >
-                    Mở
-                  </Button>
-                </Stack>
-              </Paper>
-            ))}
+                    <StatusChip status={d.status} />
+
+                    <Button
+                      size="small"
+                      variant="contained"
+                      component={RouterLink}
+                      to={`/dossiers/${d.id}`}
+                    >
+                      Mở
+                    </Button>
+                  </Stack>
+                </Paper>
+              );
+            })}
           </Stack>
         )}
       </Paper>

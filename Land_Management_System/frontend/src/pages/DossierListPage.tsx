@@ -5,6 +5,7 @@ import {
   Stack,
   Typography,
   TextField,
+  MenuItem,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
@@ -18,20 +19,20 @@ export default function DossierListPage() {
   const [rows, setRows] = useState<Dossier[]>([]);
   const [status, setStatus] = useState<DossierStatus | "ALL">("ALL");
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
 
   const filtered = useMemo(() => {
     let data = rows;
 
-    // lọc theo status
+    // lọc status
     if (status !== "ALL") {
       data = data.filter((r) => r.status === status);
     }
 
-    // search theo id + title (không phân biệt hoa thường)
+    // search id + title
     if (search.trim()) {
       const s = search.toLowerCase().trim();
-
       data = data.filter((d) => {
         return (
           d.title?.toLowerCase().includes(s) ||
@@ -40,8 +41,15 @@ export default function DossierListPage() {
       });
     }
 
+    // lọc loại hồ sơ (backend field: dossier_type_id)
+    if (typeFilter !== "ALL") {
+      data = data.filter((d: any) =>
+        String(d.dossier_type_id) === typeFilter
+      );
+    }
+
     return data;
-  }, [rows, status, search]);
+  }, [rows, status, search, typeFilter]);
 
   useEffect(() => {
     const run = async () => {
@@ -52,14 +60,9 @@ export default function DossierListPage() {
           ? await api.get("/dossiers/central/decisions")
           : await api.get("/dossiers");
 
-      const data =
-        Array.isArray(res.data)
-          ? res.data
-          : res.data?.data
-          ? res.data.data
-          : res.data?.content
-          ? res.data.content
-          : [];
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data ?? res.data?.content ?? [];
 
       setRows(data);
       setLoading(false);
@@ -85,51 +88,57 @@ export default function DossierListPage() {
 
   return (
     <Stack spacing={2}>
-      {/* HEADER */}
       <Box>
         <Typography variant="h5" fontWeight={800}>
           Danh sách hồ sơ
         </Typography>
       </Box>
 
-      {/* SEARCH + FILTER */}
-      <Paper sx={{ p: 2 }}>
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          flexWrap="wrap"
-          useFlexGap
-        >
+      {/* SEARCH + FILTER (giống InboxPage) */}
+      <Paper sx={{ p: 1.5 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+
+          {/* SEARCH */}
           <TextField
             size="small"
-            placeholder="Tìm theo ID hoặc tên hồ sơ..."
+            placeholder="Tìm theo ID hoặc tên..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 260 }}   // 👈 làm nhỏ thanh tìm kiếm
+            sx={{ width: 220 }}
           />
 
-          <Button
-            variant="outlined"
+          {/* FILTER TYPE */}
+          <TextField
+            select
             size="small"
-            onClick={() => setSearch("")}
+            label="Loại hồ sơ"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            sx={{ width: 220 }}
           >
-            Xóa tìm kiếm
-          </Button>
+            <MenuItem value="ALL">Tất cả loại</MenuItem>
+            <MenuItem value="1">Cấp GCN QSDĐ</MenuItem>
+            <MenuItem value="2">Chuyển nhượng đất</MenuItem>
+            <MenuItem value="3">Tách / hợp thửa</MenuItem>
+            <MenuItem value="4">Cấp lại giấy tờ</MenuItem>
+          </TextField>
 
           <Box sx={{ flexGrow: 1 }} />
 
           <Button
             size="small"
             variant="outlined"
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setSearch("");
+              setTypeFilter("ALL");
+            }}
           >
             Tải lại
           </Button>
         </Stack>
       </Paper>
 
-      {/* STATUS FILTER */}
+      {/* STATUS FILTER (GIỮ NGUYÊN) */}
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           {statusTabs.map((t) => (
