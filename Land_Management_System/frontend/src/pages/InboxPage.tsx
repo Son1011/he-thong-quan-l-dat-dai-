@@ -37,7 +37,7 @@ export default function InboxPage() {
           <Typography>Không có hồ sơ cần xử lý.</Typography>
         ) : (
           <Stack spacing={1}>
-            {rows.map((d) => (
+            {Array.isArray(rows) && rows.map((d) => (
               <Paper key={d.id} variant="outlined" sx={{ p: 2 }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                   <Box sx={{ flexGrow: 1 }}>

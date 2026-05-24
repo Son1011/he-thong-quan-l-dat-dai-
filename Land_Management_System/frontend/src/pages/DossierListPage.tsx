@@ -13,9 +13,11 @@ export default function DossierListPage() {
   const [loading, setLoading] = useState(true);
 
   const filtered = useMemo(() => {
-    if (status === "ALL") return rows;
-    return rows.filter((r) => r.status === status);
-  }, [rows, status]);
+  const safeRows = Array.isArray(rows) ? rows : [];
+  if (status === "ALL") return safeRows;
+
+  return safeRows.filter((r) => r.status === status);
+}, [rows, status]);
 
   useEffect(() => {
     const run = async () => {
@@ -24,7 +26,7 @@ export default function DossierListPage() {
         me?.role === "CENTRAL_OFFICER"
           ? await api.get<Dossier[]>("/dossiers/central/decisions")
           : await api.get<Dossier[]>("/dossiers");
-      setRows(res.data);
+      setRows(Array.isArray(res.data) ? res.data : []);
       setLoading(false);
     };
     void run();
@@ -84,7 +86,7 @@ export default function DossierListPage() {
           <Typography>Không có hồ sơ.</Typography>
         ) : (
           <Stack spacing={1}>
-            {filtered.map((d) => (
+            {Array.isArray(rows) && filtered.map((d) => (
               <Paper key={d.id} variant="outlined" sx={{ p: 2 }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                   <Box sx={{ flexGrow: 1 }}>

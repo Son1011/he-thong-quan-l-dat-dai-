@@ -99,10 +99,24 @@ export default function UnitsBrowserPage() {
     return children.filter((c) => c.name.toLowerCase().includes(q));
   }, [children, childQuery]);
 
-  const pendingRows = useMemo(() => rows.filter((d) => d.status === "PENDING" || d.status === "ESCALATED"), [rows]);
-  const returnedRows = useMemo(() => rows.filter((d) => d.status === "RETURNED"), [rows]);
-  const approvedRows = useMemo(() => rows.filter((d) => d.status === "APPROVED"), [rows]);
+  const safeRows = Array.isArray(rows)
+  ? rows
+  : (rows as any)?.content || (rows as any)?.data || [];
 
+const pendingRows = useMemo(
+  () => safeRows.filter((d: Dossier) => d.status === "PENDING" || d.status === "ESCALATED"),
+  [safeRows]
+);
+
+const returnedRows = useMemo(
+  () => safeRows.filter((d: Dossier) => d.status === "RETURNED"),
+  [safeRows]
+);
+
+const approvedRows = useMemo(
+  () => safeRows.filter((d: Dossier) => d.status === "APPROVED"),
+  [safeRows]
+);
   const originName = useMemo(() => {
     const m = new Map<number, string>();
     for (const c of children) m.set(c.id, c.name);
