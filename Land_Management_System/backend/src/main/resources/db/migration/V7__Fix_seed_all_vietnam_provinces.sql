@@ -1,5 +1,14 @@
 INSERT INTO administrative_unit (name, unit_level, unit_kind, parent_id, is_active)
-SELECT v.name, 'PROVINCE', NULL, c.id, true
+SELECT 
+    v.name,
+    'PROVINCE',
+    CASE 
+        WHEN v.name LIKE 'Thành phố%' THEN 'CITY'
+        WHEN v.name LIKE 'Tỉnh%' THEN 'PROVINCE'
+        ELSE NULL
+    END,
+    c.id,
+    true
 FROM (
     SELECT 'Thành phố Hà Nội' AS name
     UNION ALL SELECT 'Thành phố Huế'
