@@ -29,7 +29,9 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
 
   flyway:
-    enabled: false
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
 server:
   port: 8080
@@ -67,6 +69,8 @@ app:
       - image/jpeg
       - image/png
       - text/plain
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      - application/vnd.ms-excel
 
 management:
   endpoints:
