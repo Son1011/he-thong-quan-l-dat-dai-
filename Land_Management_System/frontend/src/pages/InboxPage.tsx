@@ -82,13 +82,13 @@ export default function InboxPage() {
       <Paper sx={{ p: 1.5 }}>
         <Stack direction="row" spacing={1} alignItems="center">
 
-          {/* SEARCH (nhỏ lại) */}
+          {/* SEARCH*/}
           <TextField
             size="small"
             label="Tìm kiếm (tên / ID)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 180 }}   // 👈 nhỏ hơn
+            sx={{ width: 180 }}   
           />
 
           {/* FILTER TYPE */}
@@ -111,7 +111,7 @@ export default function InboxPage() {
 
           {/* RESET */}
           <Button size="small" variant="outlined" onClick={reset}>
-            Reset
+            Tải lại
           </Button>
         </Stack>
       </Paper>
