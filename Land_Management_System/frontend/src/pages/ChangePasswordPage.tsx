@@ -1,5 +1,5 @@
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
-import { useState } from "react";
+import {  useEffect,useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
@@ -13,6 +13,15 @@ export default function ChangePasswordPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const forced = Boolean(me?.must_change_password);
+  useEffect(() => {
+  if (!err) return;
+
+  const timer = setTimeout(() => {
+    setErr(null);
+  }, 5000);
+
+  return () => clearTimeout(timer);
+}, [err]);
 
   return (
     <Stack spacing={2}>
@@ -55,22 +64,44 @@ export default function ChangePasswordPage() {
               variant="contained"
               disabled={busy}
               onClick={async () => {
-                setBusy(true);
-                setErr(null);
-                try {
-                  await api.post("/auth/change-password", {
-                    old_password: oldPassword,
-                    new_password: newPassword,
-                    confirm_password: confirm,
-                  });
-                  await refresh();
-                  nav("/inbox");
-                } catch (e: any) {
-                  setErr(e?.response?.data?.detail ?? e?.message ?? "Đổi mật khẩu thất bại");
-                } finally {
-                  setBusy(false);
-                }
-              }}
+  if (newPassword !== confirm) {
+    setErr("Mật khẩu mới và xác nhận mật khẩu không khớp");
+    return;
+  }
+
+  setBusy(true);
+  setErr(null);
+
+  try {
+    await api.post("/auth/change-password", {
+      old_password: oldPassword,
+      new_password: newPassword,
+      confirm_password: confirm,
+    });
+
+    await refresh();
+    nav("/inbox");
+
+  } catch (e: any) {
+
+    if (
+      e?.response?.status === 401 ||
+      e?.response?.status === 400
+    ) {
+      setErr("Sai mật khẩu cũ");
+
+      setTimeout(() => {
+        setErr(null);
+      }, 5000);
+
+    } else {
+      setErr("Đổi mật khẩu thất bại");
+    }
+
+  } finally {
+    setBusy(false);
+  }
+}}
             >
               Lưu
             </Button>

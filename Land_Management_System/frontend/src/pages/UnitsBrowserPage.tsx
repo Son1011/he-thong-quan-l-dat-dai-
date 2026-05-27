@@ -57,8 +57,6 @@ export default function UnitsBrowserPage() {
     try {
       const res = await api.get<Unit[]>(`/units/${p.id}/children`);
       setChildren(res.data);
-      // Central is all-powerful: show ALL dossiers in that province (including those sent to central).
-      // Province officer uses a dedicated "sent to central" screen, so we exclude them only at province level.
       const d = await api.get<Dossier[]>("/dossiers", {
         params:
           me?.role === "PROVINCE_OFFICER"

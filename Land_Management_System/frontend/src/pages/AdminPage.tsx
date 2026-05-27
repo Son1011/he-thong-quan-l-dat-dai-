@@ -49,15 +49,25 @@ export default function AdminPage() {
   const [provinceSearch, setProvinceSearch] = useState("");
   const [childSearch, setChildSearch] = useState("");
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<UserRow[]>("/admin/users", { params: { q: q.trim() || undefined } });
-      setRows(res.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
+const load = async () => {
+  setLoading(true);
+
+  try {
+    const res = await api.get("/admin/users", {
+      params: { q: q.trim() || undefined },
+    });
+
+    const data = Array.isArray(res.data)
+      ? res.data
+      : res.data?.content || res.data?.data || [];
+
+    setRows(data);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     void load();
@@ -126,12 +136,12 @@ export default function AdminPage() {
 
       <Paper sx={{ p: 2 }}>
         {loading ? (
-          <Typography>Đang tải...</Typography>
-        ) : rows.length === 0 ? (
-          <Alert severity="info">Không có user.</Alert>
-        ) : (
-          <Stack spacing={1}>
-            {rows.map((u) => (
+  <Typography>Đang tải...</Typography>
+) : rows.length === 0 ? (
+  <Alert severity="info">Không có user.</Alert>
+) : (
+  <Stack spacing={1}>
+    {rows.map((u: UserRow) =>(
               <Paper key={u.id} variant="outlined" sx={{ p: 2 }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                   <Box sx={{ flexGrow: 1 }}>
