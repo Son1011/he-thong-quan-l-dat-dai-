@@ -53,22 +53,15 @@ export default function SentToCentralPage() {
     return m;
   }, [children, me]);
 
-const safeRows = Array.isArray(rows)
-  ? rows
-  : (rows as any)?.content || (rows as any)?.data || [];
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((d) => d.title.toLowerCase().includes(q));
+  }, [rows, query]);
 
-const filtered = useMemo(() => {
-  const q = query.trim().toLowerCase();
-  if (!q) return safeRows;
-
-  return safeRows.filter((d: Dossier) =>
-    d.title.toLowerCase().includes(q)
-  );
-}, [safeRows, query]);
-
-  const returned = useMemo(() => (filtered || []).filter((d: Dossier) => d.status === "RETURNED"), [filtered]);
-  const approved = useMemo(() => (filtered || []).filter((d: Dossier) => d.status === "APPROVED"), [filtered]);
-  const inProgress = useMemo(() => (filtered || []).filter((d: Dossier) => d.status !== "RETURNED" && d.status !== "APPROVED"), [filtered]);
+  const returned = useMemo(() => filtered.filter((d) => d.status === "RETURNED"), [filtered]);
+  const approved = useMemo(() => filtered.filter((d) => d.status === "APPROVED"), [filtered]);
+  const inProgress = useMemo(() => filtered.filter((d) => d.status !== "RETURNED" && d.status !== "APPROVED"), [filtered]);
 
   const getOriginName = (originId: number) => nameMap.get(originId) ?? `Đơn vị #${originId}`;
 
@@ -219,5 +212,3 @@ const filtered = useMemo(() => {
     </Stack>
   );
 }
-
-

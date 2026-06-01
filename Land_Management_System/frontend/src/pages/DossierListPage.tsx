@@ -1,4 +1,12 @@
-import { Box, Button, Paper, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Paper,
+  Stack,
+  Typography,
+  TextField,
+  MenuItem,
+} from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { api } from "../api/client";
@@ -10,32 +18,63 @@ export default function DossierListPage() {
   const { me } = useAuth();
   const [rows, setRows] = useState<Dossier[]>([]);
   const [status, setStatus] = useState<DossierStatus | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
 
   const filtered = useMemo(() => {
-  const safeRows = Array.isArray(rows) ? rows : [];
-  if (status === "ALL") return safeRows;
+    let data = rows;
 
-  return safeRows.filter((r) => r.status === status);
-}, [rows, status]);
+    // lọc status
+    if (status !== "ALL") {
+      data = data.filter((r) => r.status === status);
+    }
+
+    // search id + title
+    if (search.trim()) {
+      const s = search.toLowerCase().trim();
+      data = data.filter((d) => {
+        return (
+          d.title?.toLowerCase().includes(s) ||
+          String(d.id).includes(s)
+        );
+      });
+    }
+
+    // lọc loại hồ sơ (backend field: dossier_type_id)
+    if (typeFilter !== "ALL") {
+      data = data.filter((d: any) =>
+        String(d.dossier_type_id) === typeFilter
+      );
+    }
+
+    return data;
+  }, [rows, status, search, typeFilter]);
 
   useEffect(() => {
     const run = async () => {
       setLoading(true);
+
       const res =
         me?.role === "CENTRAL_OFFICER"
-          ? await api.get<Dossier[]>("/dossiers/central/decisions")
-          : await api.get<Dossier[]>("/dossiers");
-      setRows(Array.isArray(res.data) ? res.data : []);
+          ? await api.get("/dossiers/central/decisions")
+          : await api.get("/dossiers");
+
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data ?? res.data?.content ?? [];
+
+      setRows(data);
       setLoading(false);
     };
+
     void run();
   }, [me?.role]);
 
   const statusTabs: Array<{ key: DossierStatus | "ALL"; label: string }> =
     me?.role === "CENTRAL_OFFICER"
       ? [
-          { key: "ALL", label: "Tất cả (quyết định bởi TW)" },
+          { key: "ALL", label: "Tất cả" },
           { key: "APPROVED", label: statusLabel("APPROVED") },
           { key: "RETURNED", label: statusLabel("RETURNED") },
         ]
@@ -51,15 +90,55 @@ export default function DossierListPage() {
     <Stack spacing={2}>
       <Box>
         <Typography variant="h5" fontWeight={800}>
-          {me?.role === "CENTRAL_OFFICER" ? "Danh sách hồ sơ (Trung ương đã duyệt / trả lại)" : "Danh sách hồ sơ"}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {me?.role === "CENTRAL_OFFICER"
-            ? "Chỉ hiển thị các hồ sơ có thao tác cuối cùng là Duyệt/Trả lại bởi Trung ương. Inbox mới là nơi cần xử lý."
-            : "Dữ liệu được load theo vai trò + đơn vị hành chính (backend quyết định)."}
+          Danh sách hồ sơ
         </Typography>
       </Box>
 
+      {/* SEARCH + FILTER (giống InboxPage) */}
+      <Paper sx={{ p: 1.5 }}>
+        <Stack direction="row" spacing={1} alignItems="center">
+
+          {/* SEARCH */}
+          <TextField
+            size="small"
+            placeholder="Tìm theo ID hoặc tên..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            sx={{ width: 220 }}
+          />
+
+          {/* FILTER TYPE */}
+          <TextField
+            select
+            size="small"
+            label="Loại hồ sơ"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            sx={{ width: 220 }}
+          >
+            <MenuItem value="ALL">Tất cả loại</MenuItem>
+            <MenuItem value="1">Cấp GCN QSDĐ</MenuItem>
+            <MenuItem value="2">Chuyển nhượng đất</MenuItem>
+            <MenuItem value="3">Tách / hợp thửa</MenuItem>
+            <MenuItem value="4">Cấp lại giấy tờ</MenuItem>
+          </TextField>
+
+          <Box sx={{ flexGrow: 1 }} />
+
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={() => {
+              setSearch("");
+              setTypeFilter("ALL");
+            }}
+          >
+            Tải lại
+          </Button>
+        </Stack>
+      </Paper>
+
+      {/* STATUS FILTER (GIỮ NGUYÊN) */}
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           {statusTabs.map((t) => (
@@ -72,13 +151,10 @@ export default function DossierListPage() {
               {t.label}
             </Button>
           ))}
-          <Box sx={{ flexGrow: 1 }} />
-          <Button size="small" variant="outlined" onClick={() => window.location.reload()}>
-            Tải lại
-          </Button>
         </Stack>
       </Paper>
 
+      {/* LIST */}
       <Paper sx={{ p: 2 }}>
         {loading ? (
           <Typography>Đang tải...</Typography>
@@ -86,17 +162,29 @@ export default function DossierListPage() {
           <Typography>Không có hồ sơ.</Typography>
         ) : (
           <Stack spacing={1}>
-            {Array.isArray(rows) && filtered.map((d) => (
+            {filtered.map((d) => (
               <Paper key={d.id} variant="outlined" sx={{ p: 2 }}>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  spacing={2}
+                  alignItems={{ sm: "center" }}
+                >
                   <Box sx={{ flexGrow: 1 }}>
-                    <Typography fontWeight={700}>{d.title}</Typography>
+                    <Typography fontWeight={700}>
+                      {d.title}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      ID #{d.id} · origin unit #{d.origin_unit_id} · assigned unit #{d.assigned_to_unit_id}
+                      ID #{d.id} · origin unit #{d.origin_unit_id}
                     </Typography>
                   </Box>
+
                   <StatusChip status={d.status} />
-                  <Button component={RouterLink} to={`/dossiers/${d.id}`} variant="contained">
+
+                  <Button
+                    component={RouterLink}
+                    to={`/dossiers/${d.id}`}
+                    variant="contained"
+                  >
                     Chi tiết
                   </Button>
                 </Stack>
@@ -108,5 +196,3 @@ export default function DossierListPage() {
     </Stack>
   );
 }
-
-

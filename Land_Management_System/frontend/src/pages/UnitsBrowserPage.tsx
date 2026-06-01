@@ -31,19 +31,36 @@ export default function UnitsBrowserPage() {
       if (!me) return;
       setLoading(true);
       try {
-        if (me.role === "CENTRAL_OFFICER") {
-          const res = await api.get<Unit[]>("/units/provinces");
-          setProvinces(res.data);
-        } else if (me.role === "PROVINCE_OFFICER") {
-          const res = await api.get<Unit[]>(`/units/${me.unit_id}/children`);
-          setChildren(res.data);
-          // auto load dossiers for whole province (include children), but exclude those sent to central (shown in separate menu)
-          const d = await api.get<Dossier[]>("/dossiers", {
-            params: { unit_id: me.unit_id, include_children: true, sent_to_central: false },
-          });
-          setRows(d.data);
-        }
-      } finally {
+  if (me.role === "CENTRAL_OFFICER") {
+   const res = await api.get("/units/provinces");
+
+setProvinces(
+  res.data.map((p: any) => ({
+    id: p.unit_id,
+    name: p.name,
+    kind: p.kind ?? null,
+    parent_id: null,
+  }))
+);
+  } else if (me.role === "PROVINCE_OFFICER") {
+    const res = await api.get<Unit[]>(`/units/${me.unit_id}/children`);
+    setChildren(res.data);
+
+    const d = await api.get<Dossier[]>("/dossiers", {
+      params: {
+        unit_id: me.unit_id,
+        include_children: true,
+        sent_to_central: false,
+      },
+    });
+
+    setRows(
+      Array.isArray(d.data)
+        ? d.data
+        : (d.data as any).content ?? []
+    );
+  }
+} finally {
         setLoading(false);
       }
     };
@@ -51,19 +68,26 @@ export default function UnitsBrowserPage() {
   }, [me]);
 
   const loadProvince = async (p: Unit) => {
+    console.log(p);
     setSelectedProvince(p);
     setSelectedChild(null);
     setLoading(true);
     try {
       const res = await api.get<Unit[]>(`/units/${p.id}/children`);
       setChildren(res.data);
+      // Central is all-powerful: show ALL dossiers in that province (including those sent to central).
+      // Province officer uses a dedicated "sent to central" screen, so we exclude them only at province level.
       const d = await api.get<Dossier[]>("/dossiers", {
         params:
           me?.role === "PROVINCE_OFFICER"
             ? { unit_id: p.id, include_children: true, sent_to_central: false }
             : { unit_id: p.id, include_children: true },
       });
-      setRows(d.data);
+      setRows(
+  Array.isArray(d.data)
+    ? d.data
+    : (d.data as any).content ?? []
+);
     } finally {
       setLoading(false);
     }
@@ -79,7 +103,11 @@ export default function UnitsBrowserPage() {
             ? { unit_id: u.id, include_children: false, sent_to_central: false }
             : { unit_id: u.id, include_children: false },
       });
-      setRows(d.data);
+      setRows(
+  Array.isArray(d.data)
+    ? d.data
+    : (d.data as any).content ?? []
+);
     } finally {
       setLoading(false);
     }
@@ -97,24 +125,10 @@ export default function UnitsBrowserPage() {
     return children.filter((c) => c.name.toLowerCase().includes(q));
   }, [children, childQuery]);
 
-  const safeRows = Array.isArray(rows)
-  ? rows
-  : (rows as any)?.content || (rows as any)?.data || [];
+  const pendingRows = useMemo(() => rows.filter((d) => d.status === "PENDING" || d.status === "ESCALATED"), [rows]);
+  const returnedRows = useMemo(() => rows.filter((d) => d.status === "RETURNED"), [rows]);
+  const approvedRows = useMemo(() => rows.filter((d) => d.status === "APPROVED"), [rows]);
 
-const pendingRows = useMemo(
-  () => safeRows.filter((d: Dossier) => d.status === "PENDING" || d.status === "ESCALATED"),
-  [safeRows]
-);
-
-const returnedRows = useMemo(
-  () => safeRows.filter((d: Dossier) => d.status === "RETURNED"),
-  [safeRows]
-);
-
-const approvedRows = useMemo(
-  () => safeRows.filter((d: Dossier) => d.status === "APPROVED"),
-  [safeRows]
-);
   const originName = useMemo(() => {
     const m = new Map<number, string>();
     for (const c of children) m.set(c.id, c.name);
@@ -346,5 +360,3 @@ const approvedRows = useMemo(
     </Stack>
   );
 }
-
-
