@@ -31,36 +31,19 @@ export default function UnitsBrowserPage() {
       if (!me) return;
       setLoading(true);
       try {
-  if (me.role === "CENTRAL_OFFICER") {
-   const res = await api.get("/units/provinces");
-
-setProvinces(
-  res.data.map((p: any) => ({
-    id: p.unit_id,
-    name: p.name,
-    kind: p.kind ?? null,
-    parent_id: null,
-  }))
-);
-  } else if (me.role === "PROVINCE_OFFICER") {
-    const res = await api.get<Unit[]>(`/units/${me.unit_id}/children`);
-    setChildren(res.data);
-
-    const d = await api.get<Dossier[]>("/dossiers", {
-      params: {
-        unit_id: me.unit_id,
-        include_children: true,
-        sent_to_central: false,
-      },
-    });
-
-    setRows(
-      Array.isArray(d.data)
-        ? d.data
-        : (d.data as any).content ?? []
-    );
-  }
-} finally {
+        if (me.role === "CENTRAL_OFFICER") {
+          const res = await api.get<Unit[]>("/units/provinces");
+          setProvinces(res.data);
+        } else if (me.role === "PROVINCE_OFFICER") {
+          const res = await api.get<Unit[]>(`/units/${me.unit_id}/children`);
+          setChildren(res.data);
+          // auto load dossiers for whole province (include children), but exclude those sent to central (shown in separate menu)
+          const d = await api.get<Dossier[]>("/dossiers", {
+            params: { unit_id: me.unit_id, include_children: true, sent_to_central: false },
+          });
+          setRows(d.data);
+        }
+      } finally {
         setLoading(false);
       }
     };
@@ -68,7 +51,6 @@ setProvinces(
   }, [me]);
 
   const loadProvince = async (p: Unit) => {
-    console.log(p);
     setSelectedProvince(p);
     setSelectedChild(null);
     setLoading(true);
@@ -83,11 +65,7 @@ setProvinces(
             ? { unit_id: p.id, include_children: true, sent_to_central: false }
             : { unit_id: p.id, include_children: true },
       });
-      setRows(
-  Array.isArray(d.data)
-    ? d.data
-    : (d.data as any).content ?? []
-);
+      setRows(d.data);
     } finally {
       setLoading(false);
     }
@@ -103,11 +81,7 @@ setProvinces(
             ? { unit_id: u.id, include_children: false, sent_to_central: false }
             : { unit_id: u.id, include_children: false },
       });
-      setRows(
-  Array.isArray(d.data)
-    ? d.data
-    : (d.data as any).content ?? []
-);
+      setRows(d.data);
     } finally {
       setLoading(false);
     }
@@ -360,3 +334,5 @@ setProvinces(
     </Stack>
   );
 }
+
+

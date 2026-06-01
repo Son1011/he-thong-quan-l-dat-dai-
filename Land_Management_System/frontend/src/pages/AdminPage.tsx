@@ -49,22 +49,15 @@ export default function AdminPage() {
   const [provinceSearch, setProvinceSearch] = useState("");
   const [childSearch, setChildSearch] = useState("");
 
-const load = async () => {
-  setLoading(true);
-  try {
-    const res = await api.get("/admin/users");
-
-    console.log("admin/users =", res.data);
-
-    setRows(
-  Array.isArray(res.data)
-    ? res.data
-    : res.data.data ?? []
-);
-  } finally {
-    setLoading(false);
-  }
-};
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<UserRow[]>("/admin/users", { params: { q: q.trim() || undefined } });
+      setRows(res.data);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -379,4 +372,5 @@ const load = async () => {
     </Stack>
   );
 }
+
 
