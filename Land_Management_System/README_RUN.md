@@ -40,7 +40,7 @@ docker run -d \
 cd /workspaces/he-thong-quan-l-dat-dai
 ```
 
-Import:
+Import:docker exec -it mysql_land mysql -uroot -proot
 
 ```bash
 docker exec -i mysql_land mysql -uroot -proot land_management_system < land_management_system.sql

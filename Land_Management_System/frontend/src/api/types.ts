@@ -12,6 +12,7 @@ export type Me = {
   role: UserRole;
   unit_id: number;
   must_change_password: boolean;
+  password_expires_at?: string | null;
 };
 
 export type Dossier = {

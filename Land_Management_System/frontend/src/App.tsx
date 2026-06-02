@@ -15,8 +15,13 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import { hasToken } from "./auth/auth";
 
 function PrivateRoutes() {
+  
   const { me, loading } = useAuth();
   const loc = useLocation();
+  const passwordExpired = !!(
+  me?.password_expires_at &&
+  new Date(me.password_expires_at).getTime() < Date.now()
+);
 
   if (loading) {
     return (
@@ -30,9 +35,12 @@ function PrivateRoutes() {
     return <Navigate to="/login" replace />;
   }
 
-  if (me.must_change_password && loc.pathname !== "/change-password") {
-    return <Navigate to="/change-password" replace />;
-  }
+  if (
+  (me.must_change_password || passwordExpired) &&
+  loc.pathname !== "/change-password"
+) {
+  return <Navigate to="/change-password" replace />;
+}
 
   return (
     <AppShell>

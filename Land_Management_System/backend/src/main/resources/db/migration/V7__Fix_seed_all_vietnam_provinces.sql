@@ -2,6 +2,7 @@ INSERT INTO administrative_unit (name, unit_level, unit_kind, parent_id, is_acti
 SELECT 
     v.name,
     'PROVINCE',
+      NULL,
     c.id,
     true
 FROM (

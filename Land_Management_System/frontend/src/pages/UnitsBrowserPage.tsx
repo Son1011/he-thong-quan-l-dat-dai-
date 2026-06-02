@@ -8,6 +8,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
 export default function UnitsBrowserPage() {
+  console.log("UNITS PAGE LOADED");
   const { me } = useAuth();
   const nav = useNavigate();
   const [provinces, setProvinces] = useState<Unit[]>([]);
