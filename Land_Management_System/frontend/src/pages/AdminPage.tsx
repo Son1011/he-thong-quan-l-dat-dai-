@@ -50,14 +50,22 @@ export default function AdminPage() {
   const [childSearch, setChildSearch] = useState("");
 
   const load = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get<UserRow[]>("/admin/users", { params: { q: q.trim() || undefined } });
-      setRows(res.data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+
+  try {
+    const res = await api.get("/admin/users", {
+      params: { q: q.trim() || undefined },
+    });
+
+    const data = Array.isArray(res.data)
+      ? res.data
+      : res.data?.data ?? [];
+
+    setRows(data);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     void load();
@@ -131,7 +139,7 @@ export default function AdminPage() {
           <Alert severity="info">Không có user.</Alert>
         ) : (
           <Stack spacing={1}>
-            {rows.map((u) => (
+            {(Array.isArray(rows) ? rows : []).filter((u) => u.role !== "ADMIN").map((u) => (
               <Paper key={u.id} variant="outlined" sx={{ p: 2 }}>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "center" }}>
                   <Box sx={{ flexGrow: 1 }}>

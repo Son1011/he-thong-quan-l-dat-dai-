@@ -121,9 +121,11 @@ export default function VietnamInteractiveMap({
       // If this circle can't be mapped to a province id in our dataset (e.g. SVG has 63 provinces
       // but the system currently uses 34 provinces), hide it to avoid "unclickable dots".
       if (!pid) {
-        c.style.display = "none";
-        continue;
-      }
+  console.log("NOT MAPPED:", rawName);
+  c.style.fill = "red";
+  c.setAttribute("r", "10");
+  continue;
+}
 
       const value = row ? Number((row as any)[metric] ?? 0) : 0;
       const fill = row ? colorScale(value, range.min, range.max) : "#e5e7eb";

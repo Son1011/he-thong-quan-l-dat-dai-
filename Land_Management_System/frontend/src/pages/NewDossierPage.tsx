@@ -2,7 +2,6 @@ import {
   Alert,
   Box,
   Button,
-  Divider,
   Grid,
   MenuItem,
   Paper,
@@ -38,6 +37,12 @@ export default function NewDossierPage() {
   const [citizenIdentityNumber, setCitizenIdentityNumber] = useState("");
   const [citizenAddress, setCitizenAddress] = useState("");
 
+  const [errors, setErrors] = useState<{
+    citizenIdentityNumber?: string;
+    citizenPhone?: string;
+  }>({});
+
+  // ================= FILE =================
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setFiles(Array.from(e.target.files));
   };
@@ -46,9 +51,31 @@ export default function NewDossierPage() {
     setFiles(files.filter((_, i) => i !== index));
   };
 
+  // ================= VALIDATE =================
+  const validate = () => {
+    const newErrors: any = {};
+
+    if (citizenIdentityNumber.length !== 12) {
+      newErrors.citizenIdentityNumber = "CCCD phải đúng 12 chữ số";
+    }
+
+    if (citizenPhone.length !== 10) {
+      newErrors.citizenPhone = "SĐT phải đúng 10 chữ số";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ================= SUBMIT =================
   const handleSubmit = async () => {
     setBusy(true);
     setErr(null);
+
+    if (!validate()) {
+      setBusy(false);
+      return;
+    }
 
     try {
       const payload = {
@@ -70,6 +97,7 @@ export default function NewDossierPage() {
         for (const file of files) {
           const fd = new FormData();
           fd.append("file", file);
+
           await api.post(`/dossiers/${newDossier.id}/attachments`, fd, {
             headers: { "Content-Type": "multipart/form-data" },
           });
@@ -78,7 +106,16 @@ export default function NewDossierPage() {
 
       nav(`/dossiers/${newDossier.id}`);
     } catch (e: any) {
-      setErr(e?.response?.data?.detail || e?.message || "Tạo hồ sơ thất bại");
+      const data = e?.response?.data;
+
+      if (e?.response?.status === 400 && data) {
+        if (data.errors) {
+          setErrors((prev) => ({ ...prev, ...data.errors }));
+        }
+        setErr(data.detail || "Dữ liệu không hợp lệ");
+      } else {
+        setErr(e?.message || "Tạo hồ sơ thất bại");
+      }
     } finally {
       setBusy(false);
     }
@@ -86,33 +123,46 @@ export default function NewDossierPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6" fontWeight={700} gutterBottom>
+      <Typography variant="h6" fontWeight={700}>
         Tạo hồ sơ mới
       </Typography>
 
       <Paper sx={{ p: 2, borderRadius: 2 }}>
         <Stack spacing={2}>
-          {err && <Alert severity="error" sx={{ py: 0.8 }}>{err}</Alert>}
+          {err && <Alert severity="error">{err}</Alert>}
           {created && (
-            <Alert severity="success" sx={{ py: 0.8 }}>
+            <Alert severity="success">
               Đã tạo #{created.id} · <StatusChip status={created.status} />
             </Alert>
           )}
 
           <Grid container spacing={1.5}>
-            {/* Thông tin hồ sơ */}
+            {/* THÔNG TIN HỒ SƠ */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={600} color="primary">
+              <Typography fontWeight={600} color="primary">
                 Thông tin hồ sơ
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={8}>
-              <TextField label="Tiêu đề" fullWidth size="small" required value={title} onChange={(e) => setTitle(e.target.value)} />
+              <TextField
+                label="Tiêu đề"
+                fullWidth
+                size="small"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField select label="Loại" fullWidth size="small" value={dossierTypeId} onChange={(e) => setDossierTypeId(e.target.value)}>
+              <TextField
+                select
+                label="Loại"
+                fullWidth
+                size="small"
+                value={dossierTypeId}
+                onChange={(e) => setDossierTypeId(e.target.value)}
+              >
                 <MenuItem value="1">Cấp đất</MenuItem>
                 <MenuItem value="2">Chuyển nhượng</MenuItem>
               </TextField>
@@ -121,29 +171,38 @@ export default function NewDossierPage() {
             <Grid item xs={12} md={8}>
               <TextField
                 label="Mô tả"
-                multiline
-                rows={1}
                 fullWidth
                 size="small"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                sx={{ "& .MuiInputBase-input": { py: 0.8 } }}
               />
             </Grid>
 
             <Grid item xs={12} md={4}>
-              <TextField label="Đơn vị" fullWidth size="small" value={originUnitId} onChange={(e) => setOriginUnitId(e.target.value)} />
+              <TextField
+                label="Đơn vị"
+                fullWidth
+                size="small"
+                value={originUnitId}
+                onChange={(e) => setOriginUnitId(e.target.value)}
+              />
             </Grid>
 
-            {/* Thông tin công dân */}
+            {/* CÔNG DÂN */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={600} color="primary" sx={{ mt: 1 }}>
+              <Typography fontWeight={600} color="primary">
                 Thông tin công dân
               </Typography>
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField label="Họ tên" fullWidth size="small" required value={citizenName} onChange={(e) => setCitizenName(e.target.value)} />
+              <TextField
+                label="Họ tên"
+                fullWidth
+                size="small"
+                value={citizenName}
+                onChange={(e) => setCitizenName(e.target.value)}
+              />
             </Grid>
 
             <Grid item xs={12} md={6}>
@@ -152,8 +211,17 @@ export default function NewDossierPage() {
                 fullWidth
                 size="small"
                 value={citizenIdentityNumber}
-                onChange={(e) => setCitizenIdentityNumber(e.target.value)}
-                sx={{ "& .MuiInputBase-input": { py: 0.8 } }}
+                error={!!errors.citizenIdentityNumber}
+                helperText={errors.citizenIdentityNumber}
+                inputProps={{ maxLength: 12 }}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setCitizenIdentityNumber(value);
+                  setErrors((p) => ({
+                    ...p,
+                    citizenIdentityNumber: undefined,
+                  }));
+                }}
               />
             </Grid>
 
@@ -163,8 +231,17 @@ export default function NewDossierPage() {
                 fullWidth
                 size="small"
                 value={citizenPhone}
-                onChange={(e) => setCitizenPhone(e.target.value)}
-                sx={{ "& .MuiInputBase-input": { py: 0.8 } }}
+                error={!!errors.citizenPhone}
+                helperText={errors.citizenPhone}
+                inputProps={{ maxLength: 10 }}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, "");
+                  setCitizenPhone(value);
+                  setErrors((p) => ({
+                    ...p,
+                    citizenPhone: undefined,
+                  }));
+                }}
               />
             </Grid>
 
@@ -175,13 +252,12 @@ export default function NewDossierPage() {
                 size="small"
                 value={citizenAddress}
                 onChange={(e) => setCitizenAddress(e.target.value)}
-                sx={{ "& .MuiInputBase-input": { py: 0.8 } }}
               />
             </Grid>
 
-            {/* === TÀI LIỆU ĐÍNH KÈM === */}
+            {/* FILE */}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" fontWeight={600} color="primary" sx={{ mt: 1 }}>
+              <Typography fontWeight={600} color="primary">
                 Tài liệu đính kèm
               </Typography>
 
@@ -190,58 +266,55 @@ export default function NewDossierPage() {
                 variant="outlined"
                 size="small"
                 startIcon={<CloudUploadIcon />}
-                sx={{ mt: 0.5, fontSize: "0.85rem" }}
+                sx={{ mt: 1 }}
               >
                 Chọn file
                 <input hidden type="file" multiple onChange={handleFileChange} />
               </Button>
 
               {files.length > 0 && (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1 }}>
-                    Đã chọn {files.length} file
-                  </Typography>
+                <Stack spacing={0.5} mt={1}>
+                  {files.map((file, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        bgcolor: "grey.50",
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography variant="body2" noWrap>
+                        {file.name}
+                      </Typography>
 
-                  <Stack spacing={0.5}>
-                    {files.map((file, i) => (
-                      <Box
-                        key={i}
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          bgcolor: "grey.50",
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: "0.82rem",
-                        }}
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => removeFile(i)}
                       >
-                        <Typography variant="body2" noWrap>{file.name}</Typography>
-                        <IconButton 
-                          size="small" 
-                          color="error"           // ← Tô đỏ button xóa
-                          onClick={() => removeFile(i)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    ))}
-                  </Stack>
-                </>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Stack>
               )}
             </Grid>
           </Grid>
 
-          <Stack direction="row" spacing={1.5} justifyContent="flex-end" sx={{ mt: 2 }}>
-            <Button variant="outlined" size="small" onClick={() => nav("/dossiers")} disabled={busy}>
+          {/* BUTTONS */}
+          <Stack direction="row" justifyContent="flex-end" spacing={1.5}>
+            <Button onClick={() => nav("/dossiers")} disabled={busy}>
               Hủy
             </Button>
+
             <Button
               variant="contained"
-              size="small"
               onClick={handleSubmit}
-              disabled={busy || !title.trim() || !citizenName.trim()}
+              disabled={busy}
             >
               {busy ? "Đang tạo..." : "Tạo hồ sơ"}
             </Button>

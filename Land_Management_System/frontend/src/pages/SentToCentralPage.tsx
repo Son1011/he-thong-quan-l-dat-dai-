@@ -59,9 +59,23 @@ export default function SentToCentralPage() {
     return rows.filter((d) => d.title.toLowerCase().includes(q));
   }, [rows, query]);
 
-  const returned = useMemo(() => filtered.filter((d) => d.status === "RETURNED"), [filtered]);
-  const approved = useMemo(() => filtered.filter((d) => d.status === "APPROVED"), [filtered]);
-  const inProgress = useMemo(() => filtered.filter((d) => d.status !== "RETURNED" && d.status !== "APPROVED"), [filtered]);
+const returned = useMemo(
+  () => (Array.isArray(filtered) ? filtered : []).filter((d) => d.status === "RETURNED"),
+  [filtered]
+);
+
+const approved = useMemo(
+  () => (Array.isArray(filtered) ? filtered : []).filter((d) => d.status === "APPROVED"),
+  [filtered]
+);
+
+const inProgress = useMemo(
+  () =>
+    (Array.isArray(filtered) ? filtered : []).filter(
+      (d) => d.status !== "RETURNED" && d.status !== "APPROVED"
+    ),
+  [filtered]
+);
 
   const getOriginName = (originId: number) => nameMap.get(originId) ?? `Đơn vị #${originId}`;
 

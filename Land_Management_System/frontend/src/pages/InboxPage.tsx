@@ -105,6 +105,7 @@ export default function InboxPage() {
             <MenuItem value="2">Chuyển nhượng đất</MenuItem>
             <MenuItem value="3">Tách thửa / hợp thửa</MenuItem>
             <MenuItem value="4">Cấp lại giấy tờ</MenuItem>
+            <MenuItem value="5">Cấp đất</MenuItem>
           </TextField>
 
           <Box sx={{ flexGrow: 1 }} />

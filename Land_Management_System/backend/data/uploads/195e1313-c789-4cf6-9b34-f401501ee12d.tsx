@@ -83,10 +83,7 @@ export default function UnitsBrowserPage() {
             : { unit_id: u.id, include_children: false },
       });
       setRows(Array.isArray(d.data) ? d.data : []);
-    }finally {
-    setLoading(false);
-  }
-};
+
   const filteredProvinces = useMemo(() => {
     const q = provinceQuery.trim().toLowerCase();
     if (!q) return provinces;
