@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import java.time.LocalDateTime;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -51,6 +52,15 @@ public class AuthController {
             throw new BadCredentialsException("Invalid username or password");
         }
 
+        // Nếu mật khẩu đã quá hạn thì đánh dấu mustChangePassword=true nhưng vẫn cho
+        // phép login
+        if (user.getPasswordExpiresAt() != null && LocalDateTime.now().isAfter(user.getPasswordExpiresAt())) {
+            if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+                user.setMustChangePassword(true);
+                userRepository.save(user);
+            }
+        }
+
         String token = jwtTokenProvider.generateToken(user);
         return ResponseEntity.ok(TokenResponse.builder()
                 .accessToken(token)
@@ -85,4 +95,3 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 }
-

@@ -10,6 +10,7 @@ import com.landmanagement.enums.UnitLevel;
 import com.landmanagement.repository.UnitRepository;
 import com.landmanagement.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import java.time.LocalDateTime;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,6 +48,14 @@ public class UserService {
                 .mustChangePassword(Boolean.TRUE.equals(request.getMustChangePassword()))
                 .isActive(true)
                 .build();
+
+        // Nếu không bắt đổi mật khẩu (mustChangePassword=false) thì khởi tạo các
+        // timestamp
+        if (!Boolean.TRUE.equals(user.getMustChangePassword())) {
+            LocalDateTime now = LocalDateTime.now();
+            user.setPasswordChangedAt(now);
+            user.setPasswordExpiresAt(now.plusDays(90));
+        }
 
         UserAccount saved = userRepository.save(user);
 
@@ -121,6 +130,11 @@ public class UserService {
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setMustChangePassword(false);
+
+        // Cập nhật thời điểm thay đổi mật khẩu và thời hạn hết hạn (90 ngày)
+        LocalDateTime now = LocalDateTime.now();
+        user.setPasswordChangedAt(now);
+        user.setPasswordExpiresAt(now.plusDays(90));
 
         userRepository.save(user);
     }

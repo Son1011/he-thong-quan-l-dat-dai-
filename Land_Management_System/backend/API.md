@@ -89,12 +89,12 @@ Khi lỗi validation/auth/business, backend có thể trả JSON dạng:
 
 ## 4. Auth APIs
 
-| Method | Path | Auth | Chức năng |
-| --- | --- | --- | --- |
-| `POST` | `/auth/login` | Không | Đăng nhập và nhận JWT |
-| `GET` | `/auth/me` | Có | Lấy thông tin user hiện tại |
-| `POST` | `/auth/change-password` | Có | Đổi mật khẩu user hiện tại |
-| `GET` | `/me` | Có | Alias lấy thông tin user hiện tại |
+| Method | Path                    | Auth  | Chức năng                         |
+| ------ | ----------------------- | ----- | --------------------------------- |
+| `POST` | `/auth/login`           | Không | Đăng nhập và nhận JWT             |
+| `GET`  | `/auth/me`              | Có    | Lấy thông tin user hiện tại       |
+| `POST` | `/auth/change-password` | Có    | Đổi mật khẩu user hiện tại        |
+| `GET`  | `/me`                   | Có    | Alias lấy thông tin user hiện tại |
 
 ### POST /auth/login
 
@@ -118,6 +118,8 @@ Response:
 
 Frontend lưu `access_token` và gửi trong header `Authorization` cho các request sau.
 
+Note: Sau khi xác thực mật khẩu thành công, backend sẽ kiểm tra trường `password_expires_at` của user. Nếu mật khẩu đã quá hạn, backend sẽ đặt `must_change_password=true` cho user (và lưu lại) nhưng vẫn trả token bình thường. Frontend nên gọi `GET /auth/me` hoặc kiểm tra flag `must_change_password` và chuyển hướng người dùng tới trang đổi mật khẩu khi cần.
+
 ### GET /auth/me
 
 Response:
@@ -126,6 +128,9 @@ Response:
 {
   "id": 1,
   "username": "admin",
+
+Implementation notes:
+- Khi đổi mật khẩu thành công, backend sẽ cập nhật `password_changed_at` = thời gian hiện tại và `password_expires_at` = thời điểm hiện tại + 90 ngày; đồng thời `must_change_password` được đặt về `false`.
   "role": "ADMIN",
   "unit_id": 1,
   "must_change_password": false
@@ -162,11 +167,11 @@ Lưu ý: `new_password` tối thiểu 6 ký tự và phải bằng `confirm_pass
 
 Base path: `/admin/users`. Tất cả API trong nhóm này chỉ dành cho `ADMIN`.
 
-| Method | Path | Query/Body | Chức năng |
-| --- | --- | --- | --- |
-| `POST` | `/admin/users` | JSON body | Tạo tài khoản user |
-| `GET` | `/admin/users` | `q`, `role`, `unitId`, `page`, `size` | Danh sách user có phân trang/lọc |
-| `PUT` | `/admin/users/{userId}` | JSON body | Cập nhật user |
+| Method | Path                    | Query/Body                            | Chức năng                        |
+| ------ | ----------------------- | ------------------------------------- | -------------------------------- |
+| `POST` | `/admin/users`          | JSON body                             | Tạo tài khoản user               |
+| `GET`  | `/admin/users`          | `q`, `role`, `unitId`, `page`, `size` | Danh sách user có phân trang/lọc |
+| `PUT`  | `/admin/users/{userId}` | JSON body                             | Cập nhật user                    |
 
 ### POST /admin/users
 
@@ -193,6 +198,11 @@ Response:
   "id": 10
 }
 ```
+
+Notes for password lifecycle on create:
+
+- Nếu `must_change_password=true` được gửi khi tạo user, backend sẽ giữ cờ này và không khởi tạo `password_changed_at`/`password_expires_at` (bắt buộc user phải đổi mật khẩu lần đầu).
+- Nếu `must_change_password` không được gửi hoặc là `false`, backend sẽ khởi tạo `password_changed_at` = now và `password_expires_at` = now + 90 days.
 
 ### GET /admin/users
 
@@ -248,11 +258,11 @@ Response: `UserResponse`.
 
 ## 6. Unit APIs
 
-| Method | Path | Auth | Chức năng |
-| --- | --- | --- | --- |
-| `POST` | `/admin/units` | `ADMIN` | Tạo đơn vị hành chính |
-| `GET` | `/units/provinces` | Có | Lấy danh sách tỉnh/thành |
-| `GET` | `/units/{unitId}/children` | Có | Lấy danh sách xã/phường con của một đơn vị |
+| Method | Path                       | Auth    | Chức năng                                  |
+| ------ | -------------------------- | ------- | ------------------------------------------ |
+| `POST` | `/admin/units`             | `ADMIN` | Tạo đơn vị hành chính                      |
+| `GET`  | `/units/provinces`         | Có      | Lấy danh sách tỉnh/thành                   |
+| `GET`  | `/units/{unitId}/children` | Có      | Lấy danh sách xã/phường con của một đơn vị |
 
 ### POST /admin/units
 
@@ -318,14 +328,14 @@ Response: `UnitResponse[]`.
 
 Base path: `/dossiers`. Các API hồ sơ đều cần đăng nhập.
 
-| Method | Path | Chức năng |
-| --- | --- | --- |
-| `POST` | `/dossiers` | Tạo hồ sơ đất đai |
-| `GET` | `/dossiers` | Danh sách hồ sơ có lọc/phân trang |
-| `GET` | `/dossiers/{dossierId}` | Xem chi tiết hồ sơ |
-| `POST` | `/dossiers/{dossierId}/actions` | Duyệt/trả/escalate/gửi lại hồ sơ |
-| `GET` | `/dossiers/inbox` | Hồ sơ đang được giao cho đơn vị hiện tại |
-| `GET` | `/dossiers/central/decisions` | Danh sách quyết định cấp trung ương |
+| Method | Path                            | Chức năng                                |
+| ------ | ------------------------------- | ---------------------------------------- |
+| `POST` | `/dossiers`                     | Tạo hồ sơ đất đai                        |
+| `GET`  | `/dossiers`                     | Danh sách hồ sơ có lọc/phân trang        |
+| `GET`  | `/dossiers/{dossierId}`         | Xem chi tiết hồ sơ                       |
+| `POST` | `/dossiers/{dossierId}/actions` | Duyệt/trả/escalate/gửi lại hồ sơ         |
+| `GET`  | `/dossiers/inbox`               | Hồ sơ đang được giao cho đơn vị hiện tại |
+| `GET`  | `/dossiers/central/decisions`   | Danh sách quyết định cấp trung ương      |
 
 ### POST /dossiers
 
@@ -444,12 +454,12 @@ Rule: chỉ `CENTRAL_OFFICER` được gọi.
 
 ## 8. Attachment APIs
 
-| Method | Path | Chức năng |
-| --- | --- | --- |
-| `POST` | `/dossiers/{dossierId}/attachments` | Upload file vào hồ sơ |
-| `GET` | `/dossiers/{dossierId}/attachments` | Danh sách file của hồ sơ |
-| `GET` | `/dossiers/{dossierId}/attachments/{attachmentId}/download` | Download file theo hồ sơ |
-| `GET` | `/attachments/{attachmentId}/download` | Download file route cũ/legacy |
+| Method | Path                                                        | Chức năng                     |
+| ------ | ----------------------------------------------------------- | ----------------------------- |
+| `POST` | `/dossiers/{dossierId}/attachments`                         | Upload file vào hồ sơ         |
+| `GET`  | `/dossiers/{dossierId}/attachments`                         | Danh sách file của hồ sơ      |
+| `GET`  | `/dossiers/{dossierId}/attachments/{attachmentId}/download` | Download file theo hồ sơ      |
+| `GET`  | `/attachments/{attachmentId}/download`                      | Download file route cũ/legacy |
 
 ### POST /dossiers/{dossierId}/attachments
 
@@ -499,9 +509,9 @@ Route legacy để tương thích frontend cũ. Backend tự tìm hồ sơ của
 
 ## 9. Approval History APIs
 
-| Method | Path | Chức năng |
-| --- | --- | --- |
-| `GET` | `/dossiers/{dossierId}/history` | Lịch sử xử lý hồ sơ |
+| Method | Path                            | Chức năng           |
+| ------ | ------------------------------- | ------------------- |
+| `GET`  | `/dossiers/{dossierId}/history` | Lịch sử xử lý hồ sơ |
 
 ### GET /dossiers/{dossierId}/history
 
@@ -530,10 +540,10 @@ Backend kiểm tra quyền xem hồ sơ trước khi trả lịch sử.
 
 ## 10. Statistics APIs
 
-| Method | Path | Chức năng |
-| --- | --- | --- |
-| `GET` | `/stats/provinces` | Thống kê theo tỉnh/thành |
-| `GET` | `/stats/provinces/{provinceId}/children` | Thống kê các xã/phường con của tỉnh |
+| Method | Path                                     | Chức năng                           |
+| ------ | ---------------------------------------- | ----------------------------------- |
+| `GET`  | `/stats/provinces`                       | Thống kê theo tỉnh/thành            |
+| `GET`  | `/stats/provinces/{provinceId}/children` | Thống kê các xã/phường con của tỉnh |
 
 ### GET /stats/provinces
 
@@ -562,11 +572,11 @@ Response: `StatisticsResponse[]` cho từng xã/phường con.
 
 Base path: `/admin/audit-logs`. Tất cả API trong nhóm này chỉ dành cho `ADMIN`.
 
-| Method | Path | Query | Chức năng |
-| --- | --- | --- | --- |
-| `GET` | `/admin/audit-logs/dossier/{dossierId}` | `page`, `size` | Audit log theo hồ sơ |
-| `GET` | `/admin/audit-logs/user/{userId}` | `page`, `size` | Audit log theo user |
-| `GET` | `/admin/audit-logs/by-action/{actionType}` | `page`, `size` | Audit log theo loại hành động |
+| Method | Path                                       | Query          | Chức năng                     |
+| ------ | ------------------------------------------ | -------------- | ----------------------------- |
+| `GET`  | `/admin/audit-logs/dossier/{dossierId}`    | `page`, `size` | Audit log theo hồ sơ          |
+| `GET`  | `/admin/audit-logs/user/{userId}`          | `page`, `size` | Audit log theo user           |
+| `GET`  | `/admin/audit-logs/by-action/{actionType}` | `page`, `size` | Audit log theo loại hành động |
 
 Response: `PaginatedResponse<AuditLog>`.
 
@@ -577,12 +587,12 @@ Query mặc định:
 
 ## 12. Actuator và docs
 
-| Method | Path | Auth | Chức năng |
-| --- | --- | --- | --- |
-| `GET` | `/actuator/health/**` | Không | Health check |
-| Any | `/actuator/**` | `ADMIN` | Metrics/info/actuator khác |
-| `GET` | `/swagger-ui.html` | Không | Swagger UI |
-| `GET` | `/v3/api-docs/**` | Không | OpenAPI docs |
+| Method | Path                  | Auth    | Chức năng                  |
+| ------ | --------------------- | ------- | -------------------------- |
+| `GET`  | `/actuator/health/**` | Không   | Health check               |
+| Any    | `/actuator/**`        | `ADMIN` | Metrics/info/actuator khác |
+| `GET`  | `/swagger-ui.html`    | Không   | Swagger UI                 |
+| `GET`  | `/v3/api-docs/**`     | Không   | OpenAPI docs               |
 
 ## 13. Gợi ý kết nối frontend
 
