@@ -49,7 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const items: NavItem[] = [
-    { label: "Hồ sơ cần xử lý", to: "/inbox", icon: <InboxIcon /> },
+    { label: "Hồ sơ cần xử lý", to: "/inbox", icon: <InboxIcon />,roles: ["CENTRAL_OFFICER", "PROVINCE_OFFICER", "COMMUNE_OFFICER"] },
     { label: "Danh sách hồ sơ", to: "/dossiers", icon: <ListAltIcon /> },
     { label: "Tra cứu theo tỉnh / xã", to: "/units", icon: <AccountTreeIcon />, roles: ["CENTRAL_OFFICER", "PROVINCE_OFFICER"] },
     { label: "Hồ sơ gửi lên Trung ương", to: "/sent-to-central", icon: <CloudUploadIcon />, roles: ["PROVINCE_OFFICER"] },
