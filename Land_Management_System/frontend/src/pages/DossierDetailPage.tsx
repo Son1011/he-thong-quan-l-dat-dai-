@@ -302,7 +302,7 @@ export default function DossierDetailPage() {
                 const res = await api.post<Dossier>(`/dossiers/${row.id}/actions`, {
                   action,
                   note,
-                  signature_base64_png: signature,
+                  signature_base64_png: signature?.substring(0, 255),
                 });
                 setRow(res.data);
                 setOpen(false);

@@ -24,7 +24,7 @@ public interface UserRepository extends JpaRepository<UserAccount, Long> {
              OR LOWER(u.email) LIKE LOWER(CONCAT('%', :q, '%')))
         AND (:role IS NULL OR u.role = :role)
         AND (:unitId IS NULL OR u.unitId = :unitId)
-        AND u.isActive = true
+        
       ORDER BY u.username
       """)
   Page<UserAccount> searchUsers(@Param("q") String q,

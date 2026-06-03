@@ -149,8 +149,43 @@ export default function AdminPage() {
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Typography variant="body2">Active</Typography>
-                    <Switch checked={u.is_active} disabled />
+                    <Typography
+                          variant="body2"
+                          color={u.is_active ? "success.main" : "error.main"}
+>
+  {u.is_active ? "Active" : "Inactive"}
+</Typography>
+                    <Switch
+  checked={u.is_active}
+  onChange={async (e) => {
+    const checked = e.target.checked;
+
+setRows(prev =>
+  prev.map(item =>
+    item.id === u.id
+      ? { ...item, is_active: checked }
+      : item
+  )
+);
+
+try {
+  await api.put(`/admin/users/${u.id}`, {
+  is_active: checked,
+});
+  
+} catch {
+  // rollback
+  setRows(prev =>
+    prev.map(item =>
+      item.id === u.id
+        ? { ...item, is_active: !checked }
+        : item
+    )
+  );
+  await load();
+}
+  }}
+/>
                   </Stack>
                   <Button
                     variant="outlined"

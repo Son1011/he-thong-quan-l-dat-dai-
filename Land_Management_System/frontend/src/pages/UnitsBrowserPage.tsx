@@ -7,6 +7,17 @@ import { StatusChip } from "../components/StatusChip";
 import { Link as RouterLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
+
+type PaginatedResponse<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+};
+
 export default function UnitsBrowserPage() {
   console.log("UNITS PAGE LOADED");
   const { me } = useAuth();
@@ -39,10 +50,12 @@ export default function UnitsBrowserPage() {
           const res = await api.get<Unit[]>(`/units/${me.unit_id}/children`);
           setChildren(res.data);
           // auto load dossiers for whole province (include children), but exclude those sent to central (shown in separate menu)
-          const d = await api.get<Dossier[]>("/dossiers", {
-            params: { unit_id: me.unit_id, include_children: true, sent_to_central: false },
-          });
-          setRows(Array.isArray(d.data) ? d.data : []);
+          const d = await api.get<PaginatedResponse<Dossier>>("/dossiers", {
+  params: { unit_id: me.unit_id, include_children: true, sent_to_central: false },
+});
+
+console.log("Dossiers response:", d.data);
+setRows(d.data.data ?? []);
         }
       } finally {
         setLoading(false);
@@ -60,13 +73,15 @@ export default function UnitsBrowserPage() {
       setChildren(res.data);
       // Central is all-powerful: show ALL dossiers in that province (including those sent to central).
       // Province officer uses a dedicated "sent to central" screen, so we exclude them only at province level.
-      const d = await api.get<Dossier[]>("/dossiers", {
-        params:
-          me?.role === "PROVINCE_OFFICER"
-            ? { unit_id: p.id, include_children: true, sent_to_central: false }
-            : { unit_id: p.id, include_children: true },
-      });
-      setRows(Array.isArray(d.data) ? d.data : []);
+      const d = await api.get<PaginatedResponse<Dossier>>("/dossiers", {
+  params:
+    me?.role === "PROVINCE_OFFICER"
+      ? { unit_id: p.id, include_children: true, sent_to_central: false }
+      : { unit_id: p.id, include_children: true },
+});
+
+console.log("Dossiers response:", d.data);
+setRows(d.data.data ?? []);
     } finally {
       setLoading(false);
     }
@@ -76,13 +91,15 @@ export default function UnitsBrowserPage() {
     setSelectedChild(u);
     setLoading(true);
     try {
-      const d = await api.get<Dossier[]>("/dossiers", {
-        params:
-          me?.role === "PROVINCE_OFFICER"
-            ? { unit_id: u.id, include_children: false, sent_to_central: false }
-            : { unit_id: u.id, include_children: false },
-      });
-      setRows(Array.isArray(d.data) ? d.data : []);
+      const d = await api.get<PaginatedResponse<Dossier>>("/dossiers", {
+  params:
+    me?.role === "PROVINCE_OFFICER"
+      ? { unit_id: u.id, include_children: false, sent_to_central: false }
+      : { unit_id: u.id, include_children: false },
+});
+
+console.log("Dossiers response:", d.data);
+setRows(d.data.data ?? []);
     }finally {
     setLoading(false);
   }
