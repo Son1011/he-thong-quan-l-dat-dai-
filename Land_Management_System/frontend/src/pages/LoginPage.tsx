@@ -183,8 +183,16 @@ export default function LoginPage() {
                 await refresh();
                 nav("/");
               } catch (e: any) {
-                setErr(e?.response?.data?.detail ?? e?.message ?? "Đăng nhập thất bại");
-              } finally {
+  if (e?.response?.status === 401) {
+    setErr("Tên đăng nhập hoặc mật khẩu không đúng");
+  } else {
+    setErr(
+      e?.response?.data?.detail ||
+      e?.response?.data?.message ||
+      "Đăng nhập thất bại"
+    );
+  }
+} finally {
                 setBusy(false);
               }
             }}
