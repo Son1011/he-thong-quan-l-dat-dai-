@@ -22,17 +22,23 @@ import { roleLabel } from "../utils/labels";
 type UserRow = {
   id: number;
   username: string;
+  email: string;
+  phone_number?: string;
   role: UserRole;
   unit_id: number;
   is_active: boolean;
   must_change_password: boolean;
+  last_login_at?: string;
 };
 
 export default function AdminPage() {
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const { me } = useAuth();
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fullName, setFullName] = useState("");
 
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState<null | UserRow>(null);
@@ -50,22 +56,22 @@ export default function AdminPage() {
   const [childSearch, setChildSearch] = useState("");
 
   const load = async () => {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const res = await api.get("/admin/users", {
-      params: { q: q.trim() || undefined },
-    });
+    try {
+      const res = await api.get("/admin/users", {
+        params: { q: q.trim() || undefined },
+      });
 
-    const data = Array.isArray(res.data)
-      ? res.data
-      : res.data?.data ?? [];
+      const data = Array.isArray(res.data)
+        ? res.data
+        : res.data?.data ?? [];
 
-    setRows(data);
-  } finally {
-    setLoading(false);
-  }
-};
+      setRows(data);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     void load();
@@ -125,6 +131,10 @@ export default function AdminPage() {
               setChildUnitId("");
               setChildUnits([]);
               setOpenCreate(true);
+              setUsername("");
+              setPassword("123456");
+              setEmail("");
+              setPhoneNumber("");
             }}
           >
             Tạo tài khoản
@@ -145,47 +155,55 @@ export default function AdminPage() {
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography fontWeight={800}>{u.username}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      ID #{u.id} · {roleLabel(u.role)} · đơn vị #{u.unit_id}
+                      ID #{u.id} · {roleLabel(u.role)} · Đơn vị #{u.unit_id}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary">
+    Đăng nhập cuối:
+    {" "}
+    {u.last_login_at
+      ? new Date(u.last_login_at).toLocaleString("vi-VN")
+      : "Chưa từng đăng nhập"}
+  </Typography>
+
                   </Box>
                   <Stack direction="row" spacing={1} alignItems="center">
                     <Typography
-                          variant="body2"
-                          color={u.is_active ? "success.main" : "error.main"}
->
-  {u.is_active ? "Active" : "Inactive"}
-</Typography>
+                      variant="body2"
+                      color={u.is_active ? "success.main" : "error.main"}
+                    >
+                      {u.is_active ? "Active" : "Inactive"}
+                    </Typography>
                     <Switch
-  checked={u.is_active}
-  onChange={async (e) => {
-    const checked = e.target.checked;
+                      checked={u.is_active}
+                      onChange={async (e) => {
+                        const checked = e.target.checked;
 
-setRows(prev =>
-  prev.map(item =>
-    item.id === u.id
-      ? { ...item, is_active: checked }
-      : item
-  )
-);
+                        setRows(prev =>
+                          prev.map(item =>
+                            item.id === u.id
+                              ? { ...item, is_active: checked }
+                              : item
+                          )
+                        );
 
-try {
-  await api.put(`/admin/users/${u.id}`, {
-  is_active: checked,
-});
-  
-} catch {
-  // rollback
-  setRows(prev =>
-    prev.map(item =>
-      item.id === u.id
-        ? { ...item, is_active: !checked }
-        : item
-    )
-  );
-  await load();
-}
-  }}
-/>
+                        try {
+                          await api.put(`/admin/users/${u.id}`, {
+                            is_active: checked,
+                          });
+
+                        } catch {
+                          // rollback
+                          setRows(prev =>
+                            prev.map(item =>
+                              item.id === u.id
+                                ? { ...item, is_active: !checked }
+                                : item
+                            )
+                          );
+                          await load();
+                        }
+                      }}
+                    />
                   </Stack>
                   <Button
                     variant="outlined"
@@ -277,6 +295,26 @@ try {
             ) : null}
             <TextField label="Username" value={username} onChange={(e) => setUsername(e.target.value)} fullWidth />
             <TextField label="Password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth />
+              <TextField
+  label="Họ và tên"
+  value={fullName}
+  onChange={(e) => setFullName(e.target.value)}
+  fullWidth
+/>
+              <TextField
+  label="Email"
+  type="email"
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+  fullWidth
+/>
+
+<TextField
+  label="Số điện thoại"
+  value={phoneNumber}
+  onChange={(e) => setPhoneNumber(e.target.value)}
+  fullWidth
+/>
             <Stack direction="row" spacing={1} alignItems="center">
               <Switch checked={mustChange} onChange={(e) => setMustChange(e.target.checked)} />
               <Typography>Yêu cầu đổi mật khẩu khi đăng nhập</Typography>
@@ -287,18 +325,26 @@ try {
           <Button onClick={() => setOpenCreate(false)}>Hủy</Button>
           <Button
             variant="contained"
-            disabled={!username.trim() || !password || (role !== "CENTRAL_OFFICER" && unitIdToUse == null)}
+            disabled={
+  !username.trim() ||
+  !email.trim() ||
+  !password ||
+  (role !== "CENTRAL_OFFICER" && unitIdToUse == null)
+}
             onClick={async () => {
               try {
                 const unit_id =
                   role === "CENTRAL_OFFICER" ? (me?.unit_id ?? 1) : (unitIdToUse as number);
                 await api.post("/admin/users", {
-                  username: username.trim(),
-                  password,
-                  role,
-                  unit_id,
-                  must_change_password: mustChange,
-                });
+  username,
+  password,
+  full_name: fullName,
+  email,
+  phone_number: phoneNumber,
+  role,
+  unit_id: unit_id,
+  must_change_password: mustChange,
+});
                 setOpenCreate(false);
                 await load();
               } catch (e: any) {

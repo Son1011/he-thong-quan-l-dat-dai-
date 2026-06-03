@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -23,4 +24,6 @@ public class UserResponse {
     private Boolean isActive;
     
     private Boolean mustChangePassword;
+    
+    private LocalDateTime last_login_at;
 }
