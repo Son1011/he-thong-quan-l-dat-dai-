@@ -33,4 +33,8 @@ public class DossierResponse {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+
+    private Long dossierTypeId;
+
+    private String dossierTypeName;
 }

@@ -435,6 +435,8 @@ public class DossierService {
                 .assignedToUnitId(dossier.getAssignedToUnitId())
                 .createdAt(dossier.getCreatedAt())
                 .updatedAt(dossier.getUpdatedAt())
+                .dossierTypeId(dossier.getDossierType().getId())
+                .dossierTypeName(dossier.getDossierType().getName())
                 .build();
     }
 

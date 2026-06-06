@@ -119,8 +119,6 @@ export default function DossierListPage() {
             <MenuItem value="ALL">Tất cả loại</MenuItem>
             <MenuItem value="1">Cấp GCN QSDĐ</MenuItem>
             <MenuItem value="2">Chuyển nhượng đất</MenuItem>
-            <MenuItem value="3">Tách / hợp thửa</MenuItem>
-            <MenuItem value="4">Cấp lại giấy tờ</MenuItem>
           </TextField>
 
           <Box sx={{ flexGrow: 1 }} />
