@@ -112,7 +112,7 @@ Frontend chạy:
 
 # 7. Tài khoản đăng nhập
 
- / admin1234
+ admin / admin1234
 
 province01 / admin123
 
